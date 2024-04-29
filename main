@@ -1,0 +1,206 @@
+import asyncio
+import discord
+import random
+import logging
+import re
+from discord import Intents
+from discord.ext import commands
+
+# Инициализация модуля logging
+logging.basicConfig(level=logging.DEBUG)
+
+intents = Intents.default()
+client = discord.Client(intents=intents)
+
+# Адреса изображений
+image_urls = [
+    'https://vip-1gl.ru/vipberrrt/10423beautiful_scenery_wallpaper.jpg',
+    'https://mobimg.b-cdn.net/v3/fetch/2f/2f17c8186f5e498000579700660c5734.jpeg',
+    'https://w.forfun.com/fetch/01/0170c759eea73ece819739651aa4bc9a.jpeg',
+    'https://w.forfun.com/fetch/01/0170c759eea73ece819739651aa4bc9a.jpeg',
+    'https://w.forfun.com/fetch/01/0170c759eea73ece819739651aa4bc9a.jpeg',
+    'https://masyamba.ru/ромашки-картинки/21-ромашки-картинки-красивые.jpg',
+    'https://fikiwiki.com/uploads/posts/2022-02/1644927753_36-fikiwiki-com-p-krasivie-kartinki-zamki-43.jpg'
+]
+
+words = ['слон', 'квартира', 'небо', 'автомобиль', 'лимон', 'компьютер', 'дорога', 'озеро', 'шкаф']
+
+
+# Функция для обработки события подключения бота к Discord
+@client.event
+async def on_ready():
+    logging.debug('Бот успешно вошел как {0.user}'.format(client))
+
+
+# Функция для обработки полученных сообщений
+@client.event
+async def on_message(message):
+    logging.debug(f'Получено сообщение: {message.content}')
+
+    if message.author == client.user:
+        logging.debug('Сообщение отправлено ботом, игнорируем')
+        return
+
+    if message.content.startswith('!угадай число'):
+        logging.debug('Получена команда "!угадай число"')
+        await message.channel.send('Я загадал число от 1 до 100, попробуй угадать!')
+
+        def check(m):
+            return m.author == message.author and m.content.isdigit()
+
+        number = random.randint(1, 100)
+
+        tries = 0
+        while True:
+            try:
+                guess = await client.wait_for('message', check=check, timeout=60)
+            except asyncio.TimeoutError:
+                logging.debug('Время вышло! Бот прекращает игру.')
+                await message.channel.send('Время вышло! Бот прекращает игру.')
+                break
+
+            tries += 1
+            if int(guess.content) > number:
+                await message.channel.send('Мое число меньше, чем твое!')
+            elif int(guess.content) < number:
+                await message.channel.send('Мое число больше, чем твое!')
+            else:
+                await message.channel.send(f'Поздравляю, ты угадал число за {tries} попыток!')
+                break
+
+    if message.content.startswith('!помощь'):
+        logging.debug('Получена команда "!помощь"')
+        com = '''
+        Доступные команды:
+        !выполни - выполнить математическое выражение
+        !угадай число - начать игру "Угадай число"
+        !камень, ножницы, бумага - сыграть в игру "Камень, ножницы, бумага"
+        !помощь - показать список доступных команд
+        !привет - бот поздоровается с вами в ответ
+        !запрос - решить предложенное ботом математическое выражение
+        !покажи картинку - показывает случайное изображение
+        '''
+        await message.channel.send(com)
+
+    if message.content.startswith('!привет'):
+        await message.channel.send(f'Привет, {message.author.mention}!')
+
+    if message.content.startswith('!камень, ножницы, бумага') or message.content.startswith('!кнб'):
+        logging.debug('Получена команда "!камень, ножницы, бумага"')
+        player_choice = await client.wait_for('message',
+                                              check=lambda m: m.author == message.author and m.content in ['камень',
+                                                                                                           'ножницы',
+                                                                                                           'бумага'])
+        bot_choice = random.choice(['камень', 'ножницы', 'бумага'])
+        if player_choice.content == bot_choice:
+            await message.channel.send('Ничья!')
+        elif player_choice.content == 'камень':
+            if bot_choice == 'ножницы':
+                await message.channel.send('Бот выбрал ножницы, ты проиграл!')
+            else:
+                await message.channel.send('Бот выбрал бумагу, ты выиграл!')
+        elif player_choice.content == 'ножницы':
+            if bot_choice == 'бумага':
+                await message.channel.send('Бот выбрал бумагу, ты проиграл!')
+            else:
+                await message.channel.send('Бот выбрал камень, ты выиграл!')
+        else:
+            if bot_choice == 'камень':
+                await message.channel.send('Бот выбрал камень, ты проиграл!')
+            else:
+                await message.channel.send('Бот выбрал ножницы, ты выиграл!')
+
+    if message.content.startswith('!выполни'):
+        logging.debug('Получена команда "!выполни"')
+        await message.channel.send('Чтобы использовать команду "!выполни", пожалуйста, введите математическое выражение'
+                                   ' в формате "число операция число", например, "5 + 5".')
+        match = re.match(r'\!выполни\s+(\d+)\s+\+\s+(\d+)', message.content)
+        if match:
+            num1, num2 = match.groups()
+            result = float(num1) + float(num2)
+            await message.channel.send(f'Результат выражения: {num1} + {num2} = {result}')
+        else:
+            match = re.match(r'\!выполни\s+(\d+)\s+\-\s+(\d+)', message.content)
+            if match:
+                num1, num2 = match.groups()
+                result = float(num1) - float(num2)
+                await message.channel.send(f'Результат выражения: {num1} - {num2} = {result}')
+            else:
+                match = re.match(r'\!выполни\s+(\d+)\s+\*\s+(\d+)', message.content)
+                if match:
+                    num1, num2 = match.groups()
+                    result = float(num1) * float(num2)
+                    await message.channel.send(f'Результат выражения: {num1} * {num2} = {result}')
+                else:
+                    match = re.match(r'\!выполни\s+(\d+)\s+\/\s+(\d+)', message.content)
+                    if match:
+                        num1, num2 = match.groups()
+                        result = float(num1) / float(num2)
+                        await message.channel.send(f'Результат выражения: {num1} / {num2} = {result}')
+                    else:
+                        match = re.match(r'\!выполни\s+(\d+)\s+\/\s+(\d+)', message.content)
+                        if match:
+                            num1, num2 = match.groups()
+                            result = float(num1) / float(num2)
+                            await message.channel.send(f'Результат выражения: {num1} / {num2} = {result}')
+                        else:
+                            await message.channel.send("Неверный формат выражения.")
+
+    if message.content.startswith('!запрос'):
+        logging.debug('Получен запрос на математическое выражение')
+        expressions = [
+            '48 + 14  *  2',
+            '12 : 3  *  5',
+            '137 - 41',
+            '84 + 148',
+            '(12 + 6)  *  (3 - 1)',
+            '100 - (25  *  4)',
+            '(12 + 6) / (3  *  2)',
+        ]
+        expression = random.choice(expressions)
+        await message.channel.send(f'Пожалуйста, решите это математическое выражение: {expression}')
+
+        try:
+            user_answer = await client.wait_for('message',
+                                                check=lambda m: m.author == message.author and m.content.isdigit())
+            user_answer_content = user_answer.content
+            correct_answer = eval(expression)
+            if int(user_answer_content) == correct_answer:
+                await message.channel.send('Верно!')
+            else:
+                await message.channel.send(f'Неверно, правильный ответ: {correct_answer}')
+        except asyncio.TimeoutError:
+            await message.channel.send('Время вышло. Попробуйте снова.')
+
+    if message.content.startswith('!покажи картинку'):
+        image_url = random.choice(image_urls)
+        await message.channel.send(image_url)
+
+    if message.content.startswith('!виселица'):
+        word_to_guess = random.choice(words)
+        turns = 6
+        status = ' '.join(['-'] * len(word_to_guess))
+        ot = []
+        for i in range(len(word_to_guess)):
+            ot.append(word_to_guess[i])
+        ot = ' '.join(ot)
+
+        while turns > 0:
+            await message.channel.send(f' *  * Виселица *  * \n\nСлово: {status}\nОсталось попыток: {turns}')
+            guess = await client.wait_for('message',
+                                          check=lambda m: m.author == message.author and m.content.isalpha())
+            if guess.content in word_to_guess:
+                status = status.replace('-', f'{guess.content}', 1)
+            else:
+                turns -= 1
+            if turns == 0 or status == ot:
+                if status == ot:
+                    await message.channel.send(f'Вы угадали слово: {word_to_guess}!')
+                else:
+                    await message.channel.send(
+                        'Извините, но у вас закончились попытки. Правильное слово: ' + word_to_guess)
+                break
+
+
+TOKEN = 'TOKEN'
+client.run(TOKEN)
