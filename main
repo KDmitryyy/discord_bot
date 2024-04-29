@@ -20,7 +20,8 @@ image_urls = [
     'https://w.forfun.com/fetch/01/0170c759eea73ece819739651aa4bc9a.jpeg',
     'https://w.forfun.com/fetch/01/0170c759eea73ece819739651aa4bc9a.jpeg',
     'https://masyamba.ru/ромашки-картинки/21-ромашки-картинки-красивые.jpg',
-    'https://fikiwiki.com/uploads/posts/2022-02/1644927753_36-fikiwiki-com-p-krasivie-kartinki-zamki-43.jpg'
+    'https://fikiwiki.com/uploads/posts/2022-02/1644927753_36-fikiwiki-com-p-krasivie-kartinki-zamki-43.jpg',
+    'https://avatars.mds.yandex.net/i?id=22f703f95d4ceb1f452c178a29bac530a9bcf626-12472731-images-thumbs&n=13'
 ]
 
 words = ['слон', 'квартира', 'небо', 'автомобиль', 'лимон', 'компьютер', 'дорога', 'озеро', 'шкаф']
@@ -79,6 +80,7 @@ async def on_message(message):
         !привет - бот поздоровается с вами в ответ
         !запрос - решить предложенное ботом математическое выражение
         !покажи картинку - показывает случайное изображение
+        !виселица - начать игру "Виселица"
         '''
         await message.channel.send(com)
 
