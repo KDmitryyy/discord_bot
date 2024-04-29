@@ -89,6 +89,7 @@ async def on_message(message):
 
     if message.content.startswith('!камень, ножницы, бумага') or message.content.startswith('!кнб'):
         logging.debug('Получена команда "!камень, ножницы, бумага"')
+        await message.channel.send('Выберите: камень, ножницы или бумагу')
         player_choice = await client.wait_for('message',
                                               check=lambda m: m.author == message.author and m.content in ['камень',
                                                                                                            'ножницы',
