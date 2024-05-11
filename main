@@ -4,12 +4,12 @@ import random
 import logging
 import re
 from discord import Intents
-from discord.ext import commands
 
 # Инициализация модуля logging
 logging.basicConfig(level=logging.DEBUG)
 
 intents = Intents.default()
+intents.message_content = True
 client = discord.Client(intents=intents)
 
 # Адреса изображений
@@ -20,11 +20,95 @@ image_urls = [
     'https://w.forfun.com/fetch/01/0170c759eea73ece819739651aa4bc9a.jpeg',
     'https://w.forfun.com/fetch/01/0170c759eea73ece819739651aa4bc9a.jpeg',
     'https://masyamba.ru/ромашки-картинки/21-ромашки-картинки-красивые.jpg',
-    'https://fikiwiki.com/uploads/posts/2022-02/1644927753_36-fikiwiki-com-p-krasivie-kartinki-zamki-43.jpg',
-    'https://avatars.mds.yandex.net/i?id=22f703f95d4ceb1f452c178a29bac530a9bcf626-12472731-images-thumbs&n=13'
+    'https://fikiwiki.com/uploads/posts/2022-02/1644927753_36-fikiwiki-com-p-krasivie-kartinki-zamki-43.jpg'
 ]
 
-words = ['слон', 'квартира', 'небо', 'автомобиль', 'лимон', 'компьютер', 'дорога', 'озеро', 'шкаф']
+
+def pick_random_word():
+    words = ['автомобиль', 'слон', 'лимон', 'небо', 'квартира', 'велосипед', 'компьютер', 'карандаш', 'книга', 'шкаф',
+             'дорога', 'озеро', 'часы']
+    return random.choice(words)
+
+
+def draw_hangman(num_errors):
+    stages = [
+        '''
+           --------
+           |      |
+           |      
+           |     
+           |     
+           |    
+        ----------
+        ''',
+        '''
+           --------
+           |      |
+           |      O
+           |    
+           |    
+           |    
+        ----------
+        ''',
+        '''
+           --------
+           |      |
+           |      O
+           |      |
+           |     
+           |    
+        ----------
+        ''',
+        '''
+           --------
+           |      |
+           |      O
+           |     /|
+           |     
+           |    
+        ----------
+        ''',
+        '''
+           --------
+           |      |
+           |      O
+           |     /|\\
+           |    
+           |    
+        ----------
+        ''',
+        '''
+           --------
+           |      |
+           |      O
+           |     /|\\
+           |     / 
+           |    
+        ----------
+        ''',
+        '''
+           --------
+           |      |
+           |      O
+           |     /|\\
+           |     / \\
+           |    
+        ----------
+        '''
+    ]
+    return stages[num_errors]
+
+
+def display_word(word, guessed_letters):
+    return ' '.join([letter if letter in guessed_letters else '-' for letter in word])
+
+
+def record_result(player, result, game_type):
+    with open(f'{game_type}_results.txt', 'a') as file:
+        if result:
+            file.write(f"{player}: победа\n")
+        else:
+            file.write(f"{player}: проигрыш\n")
 
 
 # Функция для обработки события подключения бота к Discord
@@ -80,7 +164,8 @@ async def on_message(message):
         !привет - бот поздоровается с вами в ответ
         !запрос - решить предложенное ботом математическое выражение
         !покажи картинку - показывает случайное изображение
-        !виселица - начать игру "Виселица"
+        !виселица - начать игру 'Виселица'
+        !результаты - просмотреть результаты игр
         '''
         await message.channel.send(com)
 
@@ -89,34 +174,30 @@ async def on_message(message):
 
     if message.content.startswith('!камень, ножницы, бумага') or message.content.startswith('!кнб'):
         logging.debug('Получена команда "!камень, ножницы, бумага"')
-        await message.channel.send('Выберите: камень, ножницы или бумагу')
         player_choice = await client.wait_for('message',
                                               check=lambda m: m.author == message.author and m.content in ['камень',
                                                                                                            'ножницы',
                                                                                                            'бумага'])
         bot_choice = random.choice(['камень', 'ножницы', 'бумага'])
-        if player_choice.content == bot_choice:
-            await message.channel.send('Ничья!')
-        elif player_choice.content == 'камень':
-            if bot_choice == 'ножницы':
-                await message.channel.send('Бот выбрал ножницы, ты проиграл!')
-            else:
-                await message.channel.send('Бот выбрал бумагу, ты выиграл!')
-        elif player_choice.content == 'ножницы':
-            if bot_choice == 'бумага':
-                await message.channel.send('Бот выбрал бумагу, ты проиграл!')
-            else:
-                await message.channel.send('Бот выбрал камень, ты выиграл!')
-        else:
-            if bot_choice == 'камень':
-                await message.channel.send('Бот выбрал камень, ты проиграл!')
-            else:
-                await message.channel.send('Бот выбрал ножницы, ты выиграл!')
 
+        if player_choice.content == bot_choice:
+            result = 'Ничья!'
+        elif player_choice.content == 'камень':
+            result = 'Бот выбрал ножницы, ты проиграл!' if bot_choice == 'ножницы' else 'Бот выбрал бумагу, ты выиграл!'
+        elif player_choice.content == 'ножницы':
+            result = 'Бот выбрал бумагу, ты проиграл!' if bot_choice == 'бумага' else 'Бот выбрал камень, ты выиграл!'
+        else:
+            result = 'Бот выбрал камень, ты проиграл!' if bot_choice == 'камень' else 'Бот выбрал ножницы, ты выиграл!'
+
+        await message.channel.send(result)
+
+        # Сохранить результат
+        record_result(player_choice.author, result, 'rps')
     if message.content.startswith('!выполни'):
         logging.debug('Получена команда "!выполни"')
-        await message.channel.send('Чтобы использовать команду "!выполни", пожалуйста, введите математическое выражение'
-                                   ' в формате "число операция число", например, "5 + 5".')
+        await message.channel.send(
+            'Чтобы использовать команду "!выполни", пожалуйста, введите математическое выражение'
+            ' в формате "число операция число", например, "5 + 5".')
         match = re.match(r'\!выполни\s+(\d+)\s+\+\s+(\d+)', message.content)
         if match:
             num1, num2 = match.groups()
@@ -180,29 +261,80 @@ async def on_message(message):
         await message.channel.send(image_url)
 
     if message.content.startswith('!виселица'):
-        word_to_guess = random.choice(words)
-        turns = 6
-        status = ' '.join(['-'] * len(word_to_guess))
-        ot = []
-        for i in range(len(word_to_guess)):
-            ot.append(word_to_guess[i])
-        ot = ' '.join(ot)
+        word_to_guess = pick_random_word()
+        guessed_letters = set()
+        errors = 0
 
-        while turns > 0:
-            await message.channel.send(f' *  * Виселица *  * \n\nСлово: {status}\nОсталось попыток: {turns}')
-            guess = await client.wait_for('message',
-                                          check=lambda m: m.author == message.author and m.content.isalpha())
-            if guess.content in word_to_guess:
-                status = status.replace('-', f'{guess.content}', 1)
-            else:
-                turns -= 1
-            if turns == 0 or status == ot:
-                if status == ot:
-                    await message.channel.send(f'Вы угадали слово: {word_to_guess}!')
-                else:
-                    await message.channel.send(
-                        'Извините, но у вас закончились попытки. Правильное слово: ' + word_to_guess)
+        while errors < 6:
+            await message.channel.send(draw_hangman(errors))
+            await message.channel.send(display_word(word_to_guess, guessed_letters))
+
+            if '-' not in display_word(word_to_guess, guessed_letters):
+                await message.channel.send("Поздравляем! Вы победили!")
+                record_result(message.author, True, "виселица")
                 break
+
+            def check(m):
+                return m.author == message.author and m.channel == message.channel
+
+            guess = await client.wait_for('message', check=check)
+            guess = guess.content.lower()
+
+            if guess in guessed_letters:
+                await message.channel.send("Вы уже вводили эту букву.")
+            elif guess in word_to_guess:
+                await message.channel.send("Угадали!")
+                guessed_letters.add(guess)
+            else:
+                await message.channel.send("Неверно.")
+                errors += 1
+
+        if errors == 6:
+            await message.channel.send(f"Игра окончена. Вы проиграли. Загаданное слово было: {word_to_guess}")
+            record_result(message.author, False, "виселица")
+
+    if message.content.startswith('!результаты'):
+        hangman_results = {}
+        with open('виселица_results.txt', 'r') as file:
+            lines = file.readlines()
+            if lines:
+                await message.channel.send("Результаты игры 'Виселица':")
+                for line in lines:
+                    player, result = line.strip().split(': ')
+                    if player in hangman_results:
+                        if result == "победа":
+                            hangman_results[player]["победа"] += 1
+                        else:
+                            hangman_results[player]["проигрыш"] += 1
+                    else:
+                        hangman_results[player] = {"победа": 0, "проигрыш": 0}
+                        if result == "победа":
+                            hangman_results[player]["победа"] += 1
+                        else:
+                            hangman_results[player]["проигрыш"] += 1
+
+                for player, scores in hangman_results.items():
+                    await message.channel.send(f"{player}: {scores['победа']}-{scores['проигрыш']}")
+            else:
+                await message.channel.send("Пока нет сохраненных результатов для игры 'Виселица'.")
+
+        rps_results = {}
+        with open('rps_results.txt', 'r') as file:  # Чтение результатов "Камень, ножницы, бумага"
+            lines = file.readlines()
+            if lines:
+                await message.channel.send("Результаты игр 'Камень, ножницы, бумага':")
+                for line in lines:
+                    player, result = line.strip().split()
+                    if player in rps_results:
+                        rps_results[player][result] += 1
+                    else:
+                        rps_results[player] = {'победа': 0, 'проигрыш': 0}
+                        rps_results[player][result] += 1
+
+                for player, scores in rps_results.items():
+                    await message.channel.send(f"{player}: {scores['победа']}-{scores['проигрыш']}")
+            else:
+                await message.channel.send("Пока нет сохраненных результатов для 'Камень, ножницы, бумага'.")
 
 
 TOKEN = 'TOKEN'
