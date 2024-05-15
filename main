@@ -197,7 +197,7 @@ async def on_message(message):
         logging.debug('Получена команда "!выполни"')
         await message.channel.send(
             'Чтобы использовать команду "!выполни", пожалуйста, введите математическое выражение'
-            ' в формате "число операция число", например, "5 + 5".')
+            ' в формате "число операция число", например, "!выполни 5 + 5".')
         match = re.match(r'\!выполни\s+(\d+)\s+\+\s+(\d+)', message.content)
         if match:
             num1, num2 = match.groups()
@@ -234,7 +234,7 @@ async def on_message(message):
         logging.debug('Получен запрос на математическое выражение')
         expressions = [
             '48 + 14  *  2',
-            '12 : 3  *  5',
+            '12 / 3  *  5',
             '137 - 41',
             '84 + 148',
             '(12 + 6)  *  (3 - 1)',
@@ -322,7 +322,7 @@ async def on_message(message):
         with open('rps_results.txt', 'r') as file:  # Чтение результатов "Камень, ножницы, бумага"
             lines = file.readlines()
             if lines:
-                await message.channel.send("Результаты игр 'Камень, ножницы, бумага':")
+                await message.channel.send("Результаты игры 'Камень, ножницы, бумага':")
                 for line in lines:
                     player, result = line.strip().split()
                     if player in rps_results:
